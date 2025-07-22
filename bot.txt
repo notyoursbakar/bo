@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SunoNa - ???? ??? ???</title>
+  <style>
+    body { font-family: 'Noto Nastaliq Urdu', serif; background: #f9f9f9; padding: 20px; text-align: center; direction: rtl; }
+    #micBtn { font-size: 20px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    #output { margin-top: 20px; font-size: 20px; color: #333; }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&display=swap" rel="stylesheet">
+</head>
+<body>
+  <h1>?? ????? - ??? ?? ?????? ???? ?????</h1>
+  <button id="micBtn">??? ???? ??? ????</button>
+  <div id="output"></div>
+
+  <script>
+    const micBtn = document.getElementById("micBtn");
+    const output = document.getElementById("output");
+
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = "ur-PK"; // Urdu Pakistan
+
+    micBtn.onclick = () => {
+      recognition.start();
+      output.innerText = "?? ?? ??? ???...";
+    };
+
+    recognition.onresult = async (event) => {
+      const userText = event.results[0][0].transcript;
+      output.innerText = `??: ${userText}`;
+      const botReply = await sendToBotpress(userText);
+      speak(botReply);
+    };
+
+    async function sendToBotpress(text) {
+      const res = await fetch("https://api.botpress.cloud/v1/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer YOUR_BOTPRESS_API_KEY"
+        },
+        body: JSON.stringify({ message: text, user: { id: "user123" } })
+      });
+      const data = await res.json();
+      return data.responses?.[0]?.payload?.text || "?????? ???? ???? ????";
+    }
+
+    async function speak(text) {
+      output.innerHTML += `<br><strong>?????:</strong> ${text}`;
+
+      const response = await fetch("https://api.elevenlabs.io/v1/text-to-speech/YOUR_VOICE_ID/stream", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "xi-api-key": "YOUR_ELEVENLABS_API_KEY"
+        },
+        body: JSON.stringify({ text, voice_settings: { stability: 0.5, similarity_boost: 0.7 } })
+      });
+
+      const blob = await response.blob();
+      const audio = new Audio(URL.createObjectURL(blob));
+      audio.play();
+    }
+  </script>
+</body>
+</html>
